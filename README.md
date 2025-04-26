@@ -16,7 +16,7 @@ what research agenda could be derived to advance data literacy?
 - Dendrogram Visualization to explore the grouping of different studies.
 
 - Cluster Interpretation via:
- - Attribute Occurrence Statistics (e.g., how often certain teaching strategies appear in clusters).
- - Most Frequent Attribute Combinations inside each cluster.
+  - Attribute Occurrence Statistics (e.g., how often certain teaching strategies appear in clusters).
+  - Most Frequent Attribute Combinations inside each cluster.
 
 - Clear Output Presentation for better understanding of cluster contents.
