@@ -21,4 +21,5 @@ what research agenda could be derived to advance data literacy?
 
 - Clear Output Presentation for better understanding of cluster contents.
 
-![til](https://github.com/denysenko1571/data-literacy-cluster-analysis/blob/main/Screen%20Recording.gif)
+<video src="https://github.com/denysenko1571/data-literacy-cluster-analysis/blob/main/Screen%20Recording_.mp4" controls width="800">
+</video>
