@@ -20,3 +20,5 @@ what research agenda could be derived to advance data literacy?
   - Most Frequent Attribute Combinations inside each cluster.
 
 - Clear Output Presentation for better understanding of cluster contents.
+
+![til](https://github.com/denysenko1571/data-literacy-cluster-analysis/blob/main/Screen%20Recording.gif)
