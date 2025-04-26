@@ -9,7 +9,7 @@ It demonstrates my skills in Python, data preprocessing, exploratory clustering,
  - How do the characteristics of such interventions interplay to develop data skills and
 what research agenda could be derived to advance data literacy?
 
-## ✨ Features
+## 🛠 Features
 
 - Hierarchical Clustering Analysis using Ward's method and Euclidean distance.
 - Recommendation Engine to suggest optimal clustering distance levels based on cluster variance.
@@ -21,4 +21,5 @@ what research agenda could be derived to advance data literacy?
 
 - Clear Output Presentation for better understanding of cluster contents.
 
+## 📝 Code Demonsration
 ![til](https://github.com/denysenko1571/data-literacy-cluster-analysis/blob/main/code_demonstration.gif)
