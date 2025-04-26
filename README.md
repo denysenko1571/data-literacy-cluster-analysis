@@ -1,6 +1,6 @@
 # 📊 Hierarchical Clustering Analysis of Data Literacy Teaching Strategies
 
-This repository contains my Hierarchical Clustering project, completed as part of my coursework for the Data Literacy Systems Systematic Literature Review 
+This repository contains my Hierarchical Clustering project, completed as part of my coursework for the Introduction to Research in Information Systems.
 It demonstrates my skills in Python, data preprocessing, exploratory clustering, and pattern extraction from academic literature datasets.
 
 ## 🔍 Research Questions
