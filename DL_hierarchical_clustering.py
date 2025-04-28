@@ -1,4 +1,4 @@
-# Importing necessary libraries for data processing, clustering, and visualization
+# Importing libraries
 import pandas as pd
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
@@ -8,113 +8,128 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 from collections import Counter
 
-# Loading the refined database.
-# Each row is a paper, and each column is an attribute related to Data Literacy teaching strategies.
+# Load the dataset
 excel = pd.read_excel("/Users/denysenko/Desktop/refined_database.xlsx", index_col=0)
 
-# Preprocessing: Replacing 'X' (marked attributes) with 1 and missing entries with 0
-excel.replace({"X": 1, "": 0}, inplace=True)
-excel = excel.apply(pd.to_numeric, errors='coerce').fillna(0)
+print("Data loaded successfully!")
+print(excel.head())
 
-# Binarizing the dataset to ensure that all features are strictly 0 or 1
-data = (excel.values > 0).astype(int)
+# Preprocessing
+# Replace 'X' with 1 and missing values with 0
+excel = excel.replace("X", 1)
+excel = excel.fillna(0)
+excel = excel.apply(pd.to_numeric, errors='coerce')
+excel = excel.fillna(0)
 
-# Computing the pairwise distances between papers and applying Ward's linkage for hierarchical clustering
-linked = linkage(squareform(pairwise_distances(data, metric='euclidean'), checks=False), method='ward')
+print("Data after replacing 'X' and missing values:")
+print(excel.head())
 
-# Plotting a dendrogram to visualize how papers are grouped into clusters at various distances
-plt.figure(figsize=(10, 7))
+# Make sure the data is binary (only 0 and 1)
+binary_data = (excel.values > 0).astype(int)
+
+# Computing distances and applying linkage
+distances = pairwise_distances(binary_data, metric='euclidean')
+print("Pairwise distances computed!")
+
+# Because linkage expects condensed distance matrix
+distances_condensed = squareform(distances, checks=False)
+linked = linkage(distances_condensed, method='ward')
+
+# Plotting dendrogram
+plt.figure(figsize=(12, 8))
 dendrogram(linked, labels=excel.index, orientation='top', distance_sort='ascending', show_leaf_counts=True)
-plt.title('Hierarchical Clustering Dendrogram')
-plt.xlabel('Data Points')
-plt.ylabel('Distance')
-
-# Drawing a horizontal line to suggest an initial distance cut-off for clustering.
-# 8.3 was initially used in my paper, this number is fixed in the code for simplicity.
-plt.axhline(y=8.3, color='r', linestyle='--', label='Cut at distance = 8.3')
+plt.title('Dendrogram of Papers')
+plt.xlabel('Papers')
+plt.ylabel('Euclidean Distance')
+plt.axhline(y=8.3, color='red', linestyle='--', label='Suggested Cut at 8.3')
 plt.legend()
-
 plt.show()
 
-# Function to create cluster labels based on a chosen distance threshold
-def calculate_clusters(linked, distance_level):
-    return fcluster(linked, t=distance_level, criterion='distance')
 
-# Function to find and rank the most common attribute combinations inside clusters
-def get_top_combinations(cluster_data, columns, top_n=5):
-    def count_combinations(size):
-        counter = Counter()
-        for row in cluster_data[columns].itertuples(index=False):
-            active_cols = [col for col, val in zip(columns, row) if val > 0]
-            counter.update(combinations(active_cols, size))
-        return counter.most_common(top_n)
+# Choose clusters based on distance
+def get_clusters(linked_matrix, distance_cutoff):
+    clusters = fcluster(linked_matrix, t=distance_cutoff, criterion='distance')
+    return clusters
 
-    return {"size2": count_combinations(2), "size3": count_combinations(3)}
 
-# Helper function to evaluate how many clusters and their sizes exist at a given distance
-def evaluate_clusters(linked, distance):
-    clusters = fcluster(linked, t=distance, criterion='distance')
-    return clusters, pd.Series(clusters).value_counts()
+# Function to count combinations
+def find_top_combinations(df, cols, top_n=5):
+    all_combinations = Counter()
+    for row in df[cols].itertuples(index=False):
+        active = [col for col, val in zip(cols, row) if val > 0]
+        for size in [2, 3]:
+            combos = combinations(active, size)
+            all_combinations.update(combos)
+    size2 = [(c, n) for c, n in all_combinations.items() if len(c) == 2]
+    size3 = [(c, n) for c, n in all_combinations.items() if len(c) == 3]
+    return sorted(size2, key=lambda x: -x[1])[:top_n], sorted(size3, key=lambda x: -x[1])[:top_n]
 
-# Function that recommends good distance levels for clustering, based on number and size balance of clusters
-def recommend_distances(linked, min_clusters=2, max_clusters=10, step=0.1):
-    max_distance = linked[:, 2].max()
-    recommendations, seen_configs = [], set()
 
-    for distance in np.arange(0, max_distance, step):
-        clusters, cluster_sizes = evaluate_clusters(linked, distance)
-        num_clusters = len(cluster_sizes)
+# Find good distances
+def suggest_good_distances(linked_matrix, min_clusters=2, max_clusters=10):
+    distances = np.linspace(0.5, linked_matrix[:, 2].max(), 100)
+    results = []
+    seen = set()
 
-        if min_clusters <= num_clusters <= max_clusters:
-            config = (num_clusters, cluster_sizes.max(), cluster_sizes.min())
-            if config not in seen_configs:
-                seen_configs.add(config)
-                recommendations.append({
-                    'Distance': round(distance, 2),
-                    'Num Clusters': num_clusters,
-                    'Max Size': cluster_sizes.max(),
-                    'Min Size': cluster_sizes.min(),
-                    'Uniformity': cluster_sizes.max() - cluster_sizes.min()
+    for d in distances:
+        clusters = fcluster(linked_matrix, t=d, criterion='distance')
+        num = len(set(clusters))
+        if min_clusters <= num <= max_clusters:
+            sizes = pd.Series(clusters).value_counts()
+            config = (num, sizes.max(), sizes.min())
+            if config not in seen:
+                seen.add(config)
+                results.append({
+                    'Distance': round(d, 2),
+                    'NumClusters': num,
+                    'MaxSize': sizes.max(),
+                    'MinSize': sizes.min(),
+                    'SizeGap': sizes.max() - sizes.min()
                 })
+    return results
 
-    return recommendations
 
-# Getting recommendations for optimal distance values
-recommendations = recommend_distances(linked)
-
-print("Recommended distance values for clustering:")
+# Print suggested distances
+recommendations = suggest_good_distances(linked)
+print("Suggested distances for clustering:")
 for rec in recommendations:
-    print(f"Distance: {rec['Distance']:.2f}, Num Clusters: {rec['Num Clusters']}, "
-          f"Max Size: {rec['Max Size']}, Min Size: {rec['Min Size']}, "
-          f"Uniformity: {rec['Uniformity']}")
+    print(
+        f"Distance: {rec['Distance']}, Clusters: {rec['NumClusters']}, Max Size: {rec['MaxSize']}, Min Size: {rec['MinSize']}, Gap: {rec['SizeGap']}")
 
-# Allowing the user to select a clustering threshold interactively
-chosen_distance_level = float(input("Enter the clustering distance level: "))
+# Let user input a distance
+chosen_distance = float(input("Enter the distance to cut the dendrogram at: "))
 
-# Generating cluster assignments based on the user's chosen distance
-clusters = calculate_clusters(linked, chosen_distance_level)
-excel['Cluster'] = clusters
-columns_to_check = excel.columns[:-1]  # Excluding the newly added 'Cluster' column
+# Assign clusters
+cluster_labels = get_clusters(linked, chosen_distance)
+excel['Cluster'] = cluster_labels
 
-# For each cluster, summarizing the attributes and the most common attribute combinations
-for cluster_id in np.unique(clusters):
-    cluster_data = excel[excel['Cluster'] == cluster_id]
-    cluster_size = len(cluster_data)
+# Analyze each cluster
+print("\nAnalyzing clusters...\n")
+columns = excel.columns[:-1]
 
-    attribute_summary = cluster_data[columns_to_check].sum()
-    attribute_percentage = (attribute_summary / cluster_size * 100).to_dict()
-    top_combinations = get_top_combinations(cluster_data, columns_to_check)
+for cluster_id in np.unique(cluster_labels):
+    subset = excel[excel['Cluster'] == cluster_id]
+    cluster_size = len(subset)
 
-    print(f"\n{'=' * 50}\nCluster ID: {cluster_id} | Size: {cluster_size}\n{'-' * 50}")
-    print("Attribute Summary:")
-    for attr, count in attribute_summary.items():
-        print(f"  - {attr}: {count} occurrences ({attribute_percentage[attr]:.2f}%)")
+    print("=" * 60)
+    print(f"Cluster {cluster_id} | Size: {cluster_size}")
+    print("-" * 60)
 
-    print("\nTop Combinations (Size 2):")
-    for combo, count in top_combinations["size2"]:
-        print(f"  - {', '.join(combo)}: {count} occurrences")
+    summary = subset[columns].sum()
+    percents = summary / cluster_size * 100
 
-    print("\nTop Combinations (Size 3):")
-    for combo, count in top_combinations["size3"]:
-        print(f"  - {', '.join(combo)}: {count} occurrences")
-    print(f"{'=' * 50}\n")
+    print("Attribute Presence:")
+    for attr, val in summary.items():
+        print(f"  - {attr}: {int(val)} papers ({percents[attr]:.1f}%)")
+
+    size2, size3 = find_top_combinations(subset, columns)
+
+    print("\nTop 2-Attribute Combinations:")
+    for combo, count in size2:
+        print(f"  - {', '.join(combo)}: {count} times")
+
+    print("\nTop 3-Attribute Combinations:")
+    for combo, count in size3:
+        print(f"  - {', '.join(combo)}: {count} times")
+
+    print("=" * 60)
