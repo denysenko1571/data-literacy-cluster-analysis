@@ -11,15 +11,17 @@ from collections import Counter
 # Loading the refined dataset
 excel = pd.read_excel("/Users/denysenko/Desktop/refined_database.xlsx", index_col=0)
 
+# Checking the data
 print("Data loaded successfully!")
 print(excel.head())
 
-# Preprocessing
+# Preprocess
 excel = excel.replace("X", 1)
 excel = excel.fillna(0)
 excel = excel.apply(pd.to_numeric, errors='coerce')
 excel = excel.fillna(0)
 
+# Checking the data again
 print("Data after replacing 'X' and missing values:")
 print(excel.head())
 
@@ -98,7 +100,7 @@ chosen_distance = float(input("Enter the distance to cut the dendrogram at: "))
 cluster_labels = get_clusters(linked, chosen_distance)
 excel['Cluster'] = cluster_labels
 
-# Analyze each cluster
+# Analyzing each cluster and implementing better readability
 print("\nAnalyzing clusters...\n")
 columns = excel.columns[:-1]
 
