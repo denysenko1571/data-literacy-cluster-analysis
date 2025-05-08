@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 from collections import Counter
 
-# Load the dataset
+# Loading the refined dataset
 excel = pd.read_excel("/Users/denysenko/Desktop/refined_database.xlsx", index_col=0)
 
 print("Data loaded successfully!")
 print(excel.head())
 
 # Preprocessing
-# Replace 'X' with 1 and missing values with 0
 excel = excel.replace("X", 1)
 excel = excel.fillna(0)
 excel = excel.apply(pd.to_numeric, errors='coerce')
@@ -24,18 +23,16 @@ excel = excel.fillna(0)
 print("Data after replacing 'X' and missing values:")
 print(excel.head())
 
-# Make sure the data is binary (only 0 and 1)
 binary_data = (excel.values > 0).astype(int)
 
 # Computing distances and applying linkage
 distances = pairwise_distances(binary_data, metric='euclidean')
 print("Pairwise distances computed!")
 
-# Because linkage expects condensed distance matrix
 distances_condensed = squareform(distances, checks=False)
 linked = linkage(distances_condensed, method='ward')
 
-# Plotting dendrogram
+# Plotting dendrogram (The cut is fixed on a distance level used in my paper)
 plt.figure(figsize=(12, 8))
 dendrogram(linked, labels=excel.index, orientation='top', distance_sort='ascending', show_leaf_counts=True)
 plt.title('Dendrogram of Papers')
@@ -45,12 +42,10 @@ plt.axhline(y=8.3, color='red', linestyle='--', label='Suggested Cut at 8.3')
 plt.legend()
 plt.show()
 
-
-# Choose clusters based on distance
+# Choose clusters based on distance levels
 def get_clusters(linked_matrix, distance_cutoff):
     clusters = fcluster(linked_matrix, t=distance_cutoff, criterion='distance')
     return clusters
-
 
 # Function to count combinations
 def find_top_combinations(df, cols, top_n=5):
@@ -65,7 +60,7 @@ def find_top_combinations(df, cols, top_n=5):
     return sorted(size2, key=lambda x: -x[1])[:top_n], sorted(size3, key=lambda x: -x[1])[:top_n]
 
 
-# Find good distances
+# Recommendation Engine to suggest optimal clustering distance levels based on cluster variance
 def suggest_good_distances(linked_matrix, min_clusters=2, max_clusters=10):
     distances = np.linspace(0.5, linked_matrix[:, 2].max(), 100)
     results = []
@@ -89,14 +84,14 @@ def suggest_good_distances(linked_matrix, min_clusters=2, max_clusters=10):
     return results
 
 
-# Print suggested distances
+# Printing suggested distances
 recommendations = suggest_good_distances(linked)
 print("Suggested distances for clustering:")
 for rec in recommendations:
     print(
         f"Distance: {rec['Distance']}, Clusters: {rec['NumClusters']}, Max Size: {rec['MaxSize']}, Min Size: {rec['MinSize']}, Gap: {rec['SizeGap']}")
 
-# Let user input a distance
+# Inputting a distance level
 chosen_distance = float(input("Enter the distance to cut the dendrogram at: "))
 
 # Assign clusters
